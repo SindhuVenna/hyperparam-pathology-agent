@@ -1,0 +1,90 @@
+# src/hyperparam_pathology/config/tasks.yaml
+
+analyze_pathologies_task:
+  description: >
+    You are given a JSON object called raw_summary_json that describes
+    the results of a hyperparameter sweep. It includes:
+      - counts of issues by type (NaN metrics, overfitting, short runs, etc.)
+      - example problematic trials with their hyperparameters
+      - aggregated issue rates per hyperparameter bucket or value.
+
+    Your job is to identify 3–7 key pathologies: recurring relationships
+    between hyperparameters and problems. Focus on technically meaningful
+    patterns such as:
+      - "Learning rate above 1e-2 frequently leads to NaN loss."
+      - "Batch size < 16 correlates with unstable validation metrics."
+      - "Zero weight decay causes strong overfitting on small datasets."
+
+    Use the information in raw_summary_json to produce a concise JSON
+    object describing these patterns.
+
+    raw_summary_json:
+    {raw_summary_json}
+
+  expected_output: >
+    A JSON object with the following structure:
+    {
+      "patterns": [
+        {
+          "title": "High learning rate causes divergence",
+          "description": "2–4 sentence explanation with concrete evidence (buckets/values).",
+          "evidence": [
+            "Describe buckets/values and their issue rates.",
+            "Mention example trial_ids if helpful."
+          ]
+        }
+      ]
+    }
+    Do NOT include any additional text outside this JSON.
+
+  agent: pattern_analyst
+
+
+write_report_task:
+  description: >
+    You are writing a concise but technically detailed markdown report for
+    a senior ML engineer about a hyperparameter sweep.
+
+    You are given:
+
+    1) raw_summary_json:
+       This JSON object summarizes the sweep issues:
+         - counts by issue type
+         - example problematic trials (with hyperparameters)
+         - basic correlations per hyperparameter bucket or value.
+
+    2) The output of the previous task (provided in the conversation context):
+       This is a JSON object with a `patterns` field that contains the
+       key hyperparameter pathologies you identified.
+
+    Use BOTH pieces of information to produce a markdown report with
+    the following sections:
+
+    # Hyperparameter Sweep Pathology Report
+
+    ## Overview
+    - 3–5 bullets summarizing the main findings.
+
+    ## Issue Breakdown
+    - A table or bullet list of issue types and counts, with 1–2 example trial IDs.
+
+    ## Hyperparameter Pathologies
+    - For each pattern: a subsection with title, explanation, and short evidence.
+
+    ## Recommendations
+    - 3–7 very concrete next steps (e.g., avoid certain ranges, add gradient
+      clipping, constrain batch sizes, adjust regularization, add monitoring).
+
+    raw_summary_json:
+    {raw_summary_json}
+
+  expected_output: >
+    A markdown report as described above. Do not wrap it in ``` fences.
+    Do not include any preamble or meta-text like "I can give a great answer"
+    or comments about what you are doing. Start your response directly with
+    the heading "# Hyperparameter Sweep Pathology Report".
+  agent: report_writer
+  markdown: true
+  output_file: hparam_report.md
+  context:
+    - analyze_pathologies_task
