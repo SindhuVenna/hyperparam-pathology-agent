@@ -62,13 +62,15 @@ It’s a compact, systems-flavoured project that shows you think about **ML expe
 hyperparam_pathology/
 ├─ README.md
 ├─ pyproject.toml
-├─ .env
+├─ .gitignore
+├─ .env                  # not committed; holds HF_TOKEN, etc.
 ├─ examples/
 │  └─ sample_results.csv
 └─ src/
    └─ hyperparam_pathology/
       ├─ main.py                # Entry point for running the crew
       ├─ crew.py                # CrewAI crew definition (agents + tasks)
+      ├─ mcp_server.py          # MCP server exposing analyze_hparam_csv tool
       ├─ core/
       │  ├─ detectors.py        # Pure Python detectors (no LLM)
       │  └─ summarizer.py       # Build structured JSON summary
@@ -85,6 +87,7 @@ hyperparam_pathology/
 - [CrewAI](https://docs.crewai.com/)
 - [uv](https://github.com/astral-sh/uv) (CrewAI uses it under the hood)
 - A Hugging Face account + Inference API token
+- (Optional) [MCP Python SDK](https://pypi.org/project/mcp/) for MCP server support
 
 Main Python dependencies (managed via `pyproject.toml`):
 
@@ -92,6 +95,7 @@ Main Python dependencies (managed via `pyproject.toml`):
 - `litellm`
 - `pandas`
 - `numpy`
+- `mcp` (for the MCP server)
 
 ---
 
@@ -155,7 +159,7 @@ If you follow this schema, you can just drop your sweep CSV into `examples/` or 
 
 ---
 
-## Running the Crew
+## Running the Crew (CLI)
 
 ### 1. Point to your CSV
 
@@ -202,9 +206,91 @@ Crew: crew
 
 ---
 
+## MCP Server (optional)
+
+This project also exposes an **MCP server** so MCP-aware tools (ChatGPT desktop, Claude Desktop, Cursor, etc.) can call it as a tool.
+
+The server is implemented in:
+
+```text
+src/hyperparam_pathology/mcp_server.py
+```
+
+It provides one tool:
+
+- `analyze_hparam_csv(csv_path: str) -> str`  
+  → runs the same detector + CrewAI pipeline and returns the markdown report.
+
+### Install MCP dependency
+
+If you haven’t already:
+
+```bash
+uv add "mcp[cli]"
+# or
+pip install "mcp[cli]"
+```
+
+### Local debug mode (no MCP client)
+
+You can test the tool locally without any MCP client:
+
+```bash
+cd hyperparam_pathology
+source .venv/bin/activate
+
+python -m hyperparam_pathology.mcp_server debug
+```
+
+This will analyze `examples/sample_results.csv` and print the markdown report.
+
+### Running as an MCP server
+
+To run in real MCP mode (for use by an MCP client):
+
+```bash
+python -m hyperparam_pathology.mcp_server
+```
+
+The process will then speak MCP JSON-RPC over stdio. A client like Cursor, Claude Desktop, or a VS Code MCP extension can connect to it by configuring:
+
+- **Command:**
+
+  ```text
+  /path/to/your/project/.venv/bin/python
+  ```
+
+- **Args:**
+
+  ```text
+  -m
+  hyperparam_pathology.mcp_server
+  ```
+
+- **Working directory:**
+
+  ```text
+  /path/to/your/project
+  ```
+
+Then the client can call:
+
+```json
+{
+  "tool": "analyze_hparam_csv",
+  "arguments": {
+    "csv_path": "/absolute/or/relative/path/to/your_sweep.csv"
+  }
+}
+```
+
+and receive the markdown report as the tool result.
+
+---
+
 ## What the Report Contains
 
-`hparam_report.md` includes:
+`hparam_report.md` (or the MCP tool result) includes:
 
 - **Overview**
   - total issues, how many trials affected, severity distribution
@@ -257,7 +343,8 @@ You can easily evolve this into a richer experiment-intelligence tool:
 - The core analysis (`core/`) is framework-agnostic and reusable in:
   - scripts,
   - notebooks,
-  - other agent frameworks (e.g. LangGraph).
+  - other agent frameworks (e.g. LangGraph),
+  - MCP servers.
 
 ---
 
@@ -273,3 +360,4 @@ MIT (or any license you prefer).
 - [ ] Support multiple metric pairs (loss, accuracy, custom metrics)
 - [ ] Export JSON summary alongside markdown
 - [ ] Optional: integrate with Weights & Biases / MLflow logs
+- [ ] Expose more tools through MCP (e.g., next-experiment suggestions)

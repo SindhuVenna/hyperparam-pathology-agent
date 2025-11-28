@@ -1,51 +1,50 @@
 # Hyperparameter Sweep Pathology Report
 
 ## Overview
-- The sweep had a total of 5 issues across 3 trials.
-- 2 issues were related to NaN or infinite metrics, 2 to overfitting, and 1 to a short run.
-- Severity was high for 2 issues and medium for the remaining 3.
+
+* The sweep identified 5 issues across 3 trials, with 2 high-severity and 3 medium-severity issues.
+* The main issue types were `nan_or_inf_metric`, `overfitting_suspect`, and `short_run`.
+* There were clear correlations between hyperparameters and issue rates.
 
 ## Issue Breakdown
-| Issue Type | Count |
-| --- | --- |
-| nan_or_inf_metric | 2 |
-| short_run | 1 |
-| overfitting_suspect | 2 |
 
-- Example trial IDs:
-  - nan_or_inf_metric: trial_id 2, 4
-  - short_run: trial_id 2
-  - overfitting_suspect: trial_id 3, 4
+| Issue Type | Count | Example Trial IDs |
+| --- | --- | --- |
+| nan_or_inf_metric | 2 | 2, 4 |
+| overfitting_suspect | 2 | 3, 4 |
+| short_run | 1 | 2 |
 
 ## Hyperparameter Pathologies
 
-### High Learning Rate Causes Divergence
-A high learning rate can lead to divergence in the model, resulting in NaN loss. This is evident in the param_correlations where learning rates in the range (0.01, 0.02] have an issue rate of 1.0, indicating a strong correlation with divergence. Additionally, trials with learning rates in this range, such as trial_id 4, also show NaN loss. Furthermore, trials with even higher learning rates, like trial_id 2, also experience NaN loss.
+### High Learning Rate Causes NaN Loss
 
-* Evidence:
-  - lr learning rate in (0.01, 0.02] has issue rate of 1.0
-  - trial_id 4 has learning rate of 0.02 and NaN loss
-  - trial_id 2 has learning rate of 0.01 and NaN loss
+* **Title:** High learning rate causes NaN loss
+* **Description:** Learning rates above 0.01 frequently result in NaN loss, particularly in the 0.02 bucket.
+* **Evidence:**
+ + The param_correlations show a clear correlation between high learning rates and NaN loss, with the 0.01–0.02 bucket having an issue rate of 1.0.
+ + Example trial ID 4 had a learning rate of 0.02 and resulted in a NaN loss.
 
-### Small Batch Sizes Correlate with Unstable Validation Metrics
-Small batch sizes can lead to unstable validation metrics, resulting in overfitting. This is evident in the param_correlations where batch sizes in the range (7.999, 16.0] have an issue rate of 0.5, indicating a moderate correlation with overfitting. Additionally, trials with batch sizes in this range, such as trial_id 3, also show signs of overfitting.
+### Small Batch Size Correlates with Unstable Validation Metrics
 
-* Evidence:
-  - batch_size in (7.999, 16.0] has issue rate of 0.5
-  - trial_id 3 has batch size of 16 and shows signs of overfitting
+* **Title:** Small batch size correlates with unstable validation metrics
+* **Description:** Batch sizes below 16 are strongly correlated with unstable validation metrics, particularly in the 8–16 bucket.
+* **Evidence:**
+ + The param_correlations show a clear correlation between small batch sizes and unstable validation metrics, with the 8–16 bucket having an issue rate of 1.0.
+ + Example trial ID 3 had a batch size of 16 and resulted in a high overfitting suspect ratio.
 
 ### Zero Weight Decay Causes Strong Overfitting on Small Datasets
-Zero weight decay can lead to strong overfitting on small datasets. This is evident in the issues_by_type where trials with weight decay of 0, such as trial_id 3, show signs of overfitting. Additionally, the param_correlations show a strong correlation between weight decay in the range (-0.001, 0.0001] and overfitting.
 
-* Evidence:
-  - weight_decay of 0 has issue rate of 1.0 in issues_by_type
-  - trial_id 3 has weight decay of 0 and shows signs of overfitting
+* **Title:** Zero weight decay causes strong overfitting on small datasets
+* **Description:** Weight decay values of 0 are strongly correlated with overfitting, particularly in the small dataset scenario.
+* **Evidence:**
+ + The param_correlations show a clear correlation between zero weight decay and overfitting, with the 0–0.001 bucket having an issue rate of 0.6.
+ + Example trial ID 3 had a weight decay of 0 and resulted in a high overfitting suspect ratio.
 
 ## Recommendations
 
-- **Avoid learning rates in the range (0.01, 0.02]**: This range has a strong correlation with divergence, resulting in NaN loss.
-- **Use batch sizes greater than 16**: Batch sizes in the range (7.999, 16.0] have a moderate correlation with overfitting.
-- **Use weight decay greater than 0**: Zero weight decay has a strong correlation with overfitting on small datasets.
-- **Increase regularization**: Regularization can help prevent overfitting, especially when using small datasets.
-- **Monitor model performance closely**: Regular monitoring can help catch issues early and prevent longer runs from completing.
-- **Adjust hyperparameter ranges**: Consider adjusting the ranges of the hyperparameters to avoid the problematic regions.
+* Avoid learning rates above 0.01, particularly in the 0.02 bucket.
+* Use batch sizes above 16 to prevent unstable validation metrics.
+* Use weight decay values above 0 to prevent strong overfitting on small datasets.
+* Monitor trial progress closely to prevent short runs.
+* Consider adding gradient clipping or regularization to prevent overfitting.
+* Consider adjusting the regularization strength and type to improve model generalization.
