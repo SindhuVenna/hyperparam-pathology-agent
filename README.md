@@ -64,6 +64,8 @@ hyperparam_pathology/
 ├─ pyproject.toml
 ├─ .gitignore
 ├─ .env                  # not committed; holds HF_TOKEN, etc.
+├─ .vscode/
+│  └─ mcp.json           # VS Code MCP config for GitHub Copilot
 ├─ examples/
 │  └─ sample_results.csv
 └─ src/
@@ -88,6 +90,7 @@ hyperparam_pathology/
 - [uv](https://github.com/astral-sh/uv) (CrewAI uses it under the hood)
 - A Hugging Face account + Inference API token
 - (Optional) [MCP Python SDK](https://pypi.org/project/mcp/) for MCP server support
+- (Optional) GitHub Copilot in VS Code (for MCP integration)
 
 Main Python dependencies (managed via `pyproject.toml`):
 
@@ -208,7 +211,7 @@ Crew: crew
 
 ## MCP Server (optional)
 
-This project also exposes an **MCP server** so MCP-aware tools (ChatGPT desktop, Claude Desktop, Cursor, etc.) can call it as a tool.
+This project also exposes an **MCP server** so MCP-aware tools (GitHub Copilot in VS Code, Cursor, Claude Desktop, etc.) can call it as a tool.
 
 The server is implemented in:
 
@@ -252,39 +255,63 @@ To run in real MCP mode (for use by an MCP client):
 python -m hyperparam_pathology.mcp_server
 ```
 
-The process will then speak MCP JSON-RPC over stdio. A client like Cursor, Claude Desktop, or a VS Code MCP extension can connect to it by configuring:
+The process will then speak MCP JSON-RPC over stdio.
 
-- **Command:**
+---
 
-  ```text
-  /path/to/your/project/.venv/bin/python
-  ```
+## VS Code + GitHub Copilot MCP Integration
 
-- **Args:**
+If you use VS Code with GitHub Copilot, this repo includes a ready-to-use MCP config in:
 
-  ```text
-  -m
-  hyperparam_pathology.mcp_server
-  ```
+```text
+.vscode/mcp.json
+```
 
-- **Working directory:**
+Example configuration:
 
-  ```text
-  /path/to/your/project
-  ```
-
-Then the client can call:
-
-```json
+```jsonc
 {
-  "tool": "analyze_hparam_csv",
-  "arguments": {
-    "csv_path": "/absolute/or/relative/path/to/your_sweep.csv"
+  "servers": {
+    "hyperparamPathologyInspector": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "-m",
+        "hyperparam_pathology.mcp_server"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "dev": {
+        "watch": "src/**/*.py"
+      }
+    }
   }
 }
 ```
 
-and receive the markdown report as the tool result.
+- `command` uses the workspace’s virtualenv Python.
+- `envFile` loads your Hugging Face token and other env vars from `.env`.
+- `dev.watch` tells VS Code to auto-restart the MCP server when any Python file under `src/` changes.
+
+### Using the MCP tool from Copilot Chat
+
+1. Open this folder in VS Code.
+2. Make sure GitHub Copilot is enabled.
+3. Open `.vscode/mcp.json` – you should see a **Start/Restart** lens for `hyperparamPathologyInspector`. Click **Start**.
+4. Open **Copilot Chat** (Agent mode).
+5. In the tools/settings icon for the chat, enable the `hyperparamPathologyInspector` tools.
+6. Now you can either:
+   - Call the tool explicitly:
+
+     ```text
+     #analyze_hparam_csv {"csv_path": "examples/sample_results.csv"}
+     ```
+
+   - Or ask in natural language, e.g.:
+
+     > “Analyze `examples/sample_results.csv` using the hyperparameter pathology inspector and summarize the main issues and recommendations.”
+
+Copilot will call the MCP tool, get the markdown report, and then optionally summarize/rewrite it for you.
 
 ---
 
@@ -344,7 +371,8 @@ You can easily evolve this into a richer experiment-intelligence tool:
   - scripts,
   - notebooks,
   - other agent frameworks (e.g. LangGraph),
-  - MCP servers.
+  - MCP servers,
+  - and IDE integrations via MCP (like VS Code + Copilot).
 
 ---
 

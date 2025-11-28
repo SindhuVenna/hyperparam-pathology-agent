@@ -25,11 +25,14 @@ def analyze_hparam_csv(csv_path: str) -> str:
     crew = HyperparamPathologyCrew()
     result = crew.crew().kickoff(inputs={"raw_summary_json": raw_summary_json})
 
-    phrase = "I now can give a great answer"
-    if phrase in result:
-        result = result.replace(phrase, "").lstrip()
+    # Convert CrewOutput to string and extract raw output
+    result_str = result.raw if hasattr(result, 'raw') else str(result)
 
-    return result
+    phrase = "I now can give a great answer"
+    if phrase in result_str:
+        result_str = result_str.replace(phrase, "").lstrip()
+
+    return result_str
 
 
 if __name__ == "__main__":
