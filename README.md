@@ -1,4 +1,4 @@
-# Hyperparameter Pathology Inspector 🧪
+# Hyperparameter Pathology Inspector 
 
 > A small but opinionated agentic tool that inspects hyperparameter sweeps, finds “sick” trials, and explains **why** your experiments misbehaved.
 
