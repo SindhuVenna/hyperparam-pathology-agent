@@ -378,7 +378,7 @@ You can easily evolve this into a richer experiment-intelligence tool:
 
 ## License
 
-MIT (or any license you prefer).
+MIT 
 
 ---
 
